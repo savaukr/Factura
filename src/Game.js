@@ -1,63 +1,78 @@
 import * as THREE from 'three';
 import { SceneManager } from './SceneManager.js';
 import { InputManager } from './InputManager.js';
-
-const MOVE_SPEED = 6;
-const SPRINT_MULT = 2;
+import { TrainController } from './TrainController.js';
+import { PassengerSystem } from './PassengerSystem.js';
+import { UIManager } from './UIManager.js';
+import { CAMERA_OFFSET, MAX_WAGONS } from './constant.js';
 
 export class Game {
   constructor() {
     this.sceneManager = new SceneManager();
     this.input = null;
+    this.trainController = null;
+    this.passengerSystem = null;
+    this.uiManager = null;
     this.clock = new THREE.Clock();
-    this.fpsCounter = { frames: 0, elapsed: 0, display: document.getElementById('hud-fps') };
-    this.entities = [];
+    this._fpsFrames = 0;
+    this._fpsElapsed = 0;
   }
 
   start() {
     const container = document.getElementById('app');
-    this.sceneManager.init(container);
-    this.input = new InputManager(this.sceneManager.camera, document.body);
+    this.uiManager = new UIManager();
+
+    this.sceneManager.init(container, (namedMeshes, charMeshes) => {
+      this.trainController = new TrainController(
+        this.sceneManager.scene, namedMeshes, this.sceneManager.mainTex
+      );
+      this.passengerSystem = new PassengerSystem(
+        this.sceneManager.scene, charMeshes, this.sceneManager.mainTex
+      );
+      this.uiManager.setWagonCount(this.trainController.wagonCount, MAX_WAGONS);
+      this.uiManager.onAddWagon(() => {
+        if (this.trainController.addWagon()) {
+          this.uiManager.setWagonCount(this.trainController.wagonCount, MAX_WAGONS);
+        }
+      });
+    });
+
+    // Canvas is available synchronously after sceneManager.init()
+    this.input = new InputManager(this.sceneManager.renderer.domElement);
     this._animate();
   }
 
-  addEntity(entity) {
-    this.entities.push(entity);
-    entity.addToScene(this.sceneManager.scene);
-  }
+  _update(delta) {
+    if (!this.trainController) return;
 
-  update(delta) {
-    if (!this.input.isLocked) return;
+    const isMoving = this.input.isMoving;
+    this.trainController.update(delta, isMoving);
 
-    const move = this.input.getMovement();
-    const speed = (move.sprint ? MOVE_SPEED * SPRINT_MULT : MOVE_SPEED) * delta;
+    const headPos = this.trainController.getHeadPosition();
+    const atStation = this.trainController.isAtStation();
 
-    const controls = this.input.controls;
-    if (move.forward) controls.moveForward(speed);
-    if (move.back)    controls.moveForward(-speed);
-    if (move.right)   controls.moveRight(speed);
-    if (move.left)    controls.moveRight(-speed);
+    this.passengerSystem.update(delta, isMoving, headPos, atStation);
+    this.uiManager.setPassengerCount(this.passengerSystem.trainPassengerCount);
 
-    for (const entity of this.entities) {
-      if (entity.isAlive) entity.update(delta);
-    }
+    // Third-person follow camera: translate with train, fixed world-space offset
+    this.sceneManager.camera.position.copy(headPos).add(CAMERA_OFFSET);
+    this.sceneManager.camera.lookAt(headPos.x, headPos.y + 1.5, headPos.z);
   }
 
   _updateFPS(delta) {
-    this.fpsCounter.frames++;
-    this.fpsCounter.elapsed += delta;
-    if (this.fpsCounter.elapsed >= 0.5) {
-      const fps = Math.round(this.fpsCounter.frames / this.fpsCounter.elapsed);
-      this.fpsCounter.display.textContent = `FPS: ${fps}`;
-      this.fpsCounter.frames = 0;
-      this.fpsCounter.elapsed = 0;
+    this._fpsFrames++;
+    this._fpsElapsed += delta;
+    if (this._fpsElapsed >= 0.5) {
+      this.uiManager?.setFPS(Math.round(this._fpsFrames / this._fpsElapsed));
+      this._fpsFrames = 0;
+      this._fpsElapsed = 0;
     }
   }
 
   _animate() {
     requestAnimationFrame(() => this._animate());
     const delta = Math.min(this.clock.getDelta(), 0.1);
-    this.update(delta);
+    this._update(delta);
     this._updateFPS(delta);
     this.sceneManager.render();
   }

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {
   TRACK_RADIUS, TRAIN_SPEED, WAGON_GAP, MAX_WAGONS, INITIAL_WAGONS,
-  SWAY_SPEED, SWAY_AMP, WAGON_FACING_OFFSET, STATION_ANGLE, BOARDING_ZONE_ARC,
+  SWAY_SPEED, SWAY_AMP, STATION_ANGLE, BOARDING_ZONE_ARC,
 } from './constant.js';
 
 export class TrainController {
@@ -83,13 +83,15 @@ export class TrainController {
       outer.position.set(x, 0, z);
       const isLast = i === this.wagons.length - 1;
       const flip = isLast ?  0 : Math.PI;
-      outer.rotation.y = Math.atan2(-Math.sin(angle), Math.cos(angle)) + WAGON_FACING_OFFSET + flip;
+      outer.rotation.y = Math.atan2(-Math.sin(angle), Math.cos(angle)) + flip;
 
       if (isMoving) {
+        // Alternating ±2° snake sway around the wagon's
         const phase = this.animTime * 2 * Math.PI * SWAY_SPEED + i * Math.PI;
-        inner.rotation.y = Math.sin(phase) * SWAY_AMP;
+        inner.rotation.x = Math.sin(phase) * SWAY_AMP;
       } else {
-        inner.rotation.y = THREE.MathUtils.lerp(inner.rotation.y, 0, Math.min(delta * 5, 1));
+        // Smooth return to 0 when stopped
+        inner.rotation.x = THREE.MathUtils.lerp(inner.rotation.z, 0, Math.min(delta * 5, 1));
       }
     }
   }

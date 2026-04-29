@@ -16,5 +16,3 @@ export const BOARDING_ZONE_ARC = 0.6;  // radians around STATION_ANGLE
 
 export const SWAY_SPEED = 1.5;         // Hz
 export const SWAY_AMP = 2 * Math.PI / 180;  // 2 degrees
-
-export const WAGON_FACING_OFFSET = 0;  // adjust if FBX model faces wrong direction
