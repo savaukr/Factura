@@ -79,30 +79,10 @@ export class SceneManager {
   }
 
   _initTrack() {
-    // Gravel track bed (flat ring)
-    const bedMat = new THREE.MeshLambertMaterial({ map: this.mainTex, side: THREE.DoubleSide });
-    const bed = new THREE.Mesh(new THREE.RingGeometry(TRACK_RADIUS - 1.2, TRACK_RADIUS + 1.2, 80), bedMat);
-    bed.rotation.x = -Math.PI / 2;
-    bed.position.y = 0.01;
-    this.scene.add(bed);
-
-    // Two metal rails
-    const railMat = new THREE.MeshLambertMaterial({ map: this.mainTex });
-    for (const offset of [-0.4, 0.4]) {
-      const rail = new THREE.Mesh(
-        new THREE.TorusGeometry(TRACK_RADIUS + offset, 0.06, 6, 80),
-        railMat
-      );
-      rail.rotation.x = -Math.PI / 2;
-      rail.position.y = 0.09;
-      rail.castShadow = true;
-      this.scene.add(rail);
-    }
-
-    // Railway ties (wooden sleepers)
-    const tieMat = new THREE.MeshLambertMaterial({ color: 0x5c3d1e });
-    const tieGeom = new THREE.BoxGeometry(2.4, 0.1, 0.4);
-    const tieCount = 40;
+    // Wooden railway ties — oriented radially (perpendicular to rails)
+    const tieMat = new THREE.MeshLambertMaterial({ color: 0x5c3318 });
+    const tieGeom = new THREE.BoxGeometry(1.3, 0.1, 0.28);
+    const tieCount = 60;
     for (let i = 0; i < tieCount; i++) {
       const angle = (i / tieCount) * Math.PI * 2;
       const tie = new THREE.Mesh(tieGeom, tieMat);
@@ -111,10 +91,24 @@ export class SceneManager {
         0.05,
         Math.sin(angle) * TRACK_RADIUS
       );
-      tie.rotation.y = angle + Math.PI / 2;
+      // rotation.y = -angle makes local X align with the radial direction
+      tie.rotation.y = -angle;
       tie.castShadow = true;
       tie.receiveShadow = true;
       this.scene.add(tie);
+    }
+
+    // Two gray metal rails sitting on top of ties
+    const railMat = new THREE.MeshLambertMaterial({ color: 0xb8b8b8 });
+    for (const offset of [-0.4, 0.4]) {
+      const rail = new THREE.Mesh(
+        new THREE.TorusGeometry(TRACK_RADIUS + offset, 0.04, 8, 100),
+        railMat
+      );
+      rail.rotation.x = -Math.PI / 2;
+      rail.position.y = 0.14;
+      rail.castShadow = true;
+      this.scene.add(rail);
     }
   }
 
