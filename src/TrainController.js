@@ -81,7 +81,9 @@ export class TrainController {
 
       const { outer, inner } = this.wagons[i];
       outer.position.set(x, 0, z);
-      outer.rotation.y = Math.atan2(-Math.sin(angle), Math.cos(angle)) + WAGON_FACING_OFFSET;
+      const isLast = i === this.wagons.length - 1;
+      const flip = isLast ?  0 : Math.PI;
+      outer.rotation.y = Math.atan2(-Math.sin(angle), Math.cos(angle)) + WAGON_FACING_OFFSET + flip;
 
       if (isMoving) {
         const phase = this.animTime * 2 * Math.PI * SWAY_SPEED + i * Math.PI;
