@@ -68,6 +68,30 @@ export class TrainController {
     return true;
   }
 
+  update(delta, isMoving) {
+    if (isMoving) {
+      this.headAngle += TRAIN_SPEED * delta;
+      this.animTime += delta;
+    }
+
+    for (let i = 0; i < this.wagons.length; i++) {
+      const angle = this.headAngle + i * WAGON_GAP;
+      const x = Math.cos(angle) * TRACK_RADIUS;
+      const z = Math.sin(angle) * TRACK_RADIUS;
+
+      const { outer, inner } = this.wagons[i];
+      outer.position.set(x, 0, z);
+      outer.rotation.y = Math.atan2(-Math.sin(angle), Math.cos(angle)) + WAGON_FACING_OFFSET;
+
+      if (isMoving) {
+        const phase = this.animTime * 2 * Math.PI * SWAY_SPEED + i * Math.PI;
+        inner.rotation.y = Math.sin(phase) * SWAY_AMP;
+      } else {
+        inner.rotation.y = THREE.MathUtils.lerp(inner.rotation.y, 0, Math.min(delta * 5, 1));
+      }
+    }
+  }
+
   getHeadPosition() {
     return new THREE.Vector3(
       Math.cos(this.headAngle) * TRACK_RADIUS,
