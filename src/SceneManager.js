@@ -4,22 +4,31 @@ import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 import modelUrl from '../assets/models.fbx';
 import grassTexUrl from '../assets/Grass.png';
 import mainTexUrl from '../assets/Main_texture.png';
-import { CAMERA_OFFSET, STATION_WORLD } from './constant.js';
+import { CAMERA_OFFSET, STATION_WORLD, TRACK_RADIUS } from './constant.js';
 
 export class SceneManager {
   constructor() {
     this.scene = new THREE.Scene();
     this.camera = null;
     this.renderer = null;
-    this.model = null;
+    this.mainTex = null;
   }
 
-  init(container) {
+  init(container, onLoaded) {
     this._initRenderer(container);
     this._initCamera();
     this._initLights();
-    this._initGround();
-    this._loadModel();
+
+    const texLoader = new THREE.TextureLoader();
+    const grassTex = texLoader.load(grassTexUrl);
+    grassTex.wrapS = grassTex.wrapT = THREE.RepeatWrapping;
+    grassTex.repeat.set(40, 40);
+    this.mainTex = texLoader.load(mainTexUrl);
+
+    this._initGround(grassTex);
+    this._initTrack();
+    this._loadModel(onLoaded);
+
     window.addEventListener('resize', () => this._onResize());
   }
 
@@ -34,19 +43,13 @@ export class SceneManager {
   }
 
   _initCamera() {
-    // this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
-    this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.2, 300);
-
-    // Station world position (train starts here)
+    this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.2, 400);
     this.camera.position.copy(STATION_WORLD).add(CAMERA_OFFSET);
     this.camera.lookAt(STATION_WORLD.x, 1.5, STATION_WORLD.z);
-    // this.camera.position.set(10, 1.7, 0);
-    // horizon at 1/4 from top: arctan(0.5 * tan(37.5°)) ≈ 21°
-    // this.camera.rotation.x = -21 * Math.PI / 180;
   }
 
   _initLights() {
-    const ambient = new THREE.AmbientLight(0xffffff, 0.4);
+    const ambient = new THREE.AmbientLight(0xffffff, 0.5);
     this.scene.add(ambient);
 
     const sun = new THREE.DirectionalLight(0xfff5e0, 1.2);
@@ -55,22 +58,17 @@ export class SceneManager {
     sun.shadow.mapSize.setScalar(2048);
     sun.shadow.camera.near = 0.5;
     sun.shadow.camera.far = 500;
-    sun.shadow.camera.left = -100;
-    sun.shadow.camera.right = 100;
-    sun.shadow.camera.top = 100;
-    sun.shadow.camera.bottom = -100;
+    sun.shadow.camera.left = -80;
+    sun.shadow.camera.right = 80;
+    sun.shadow.camera.top = 80;
+    sun.shadow.camera.bottom = -80;
     this.scene.add(sun);
 
     this.scene.background = new THREE.Color(0x87ceeb);
-    this.scene.fog = new THREE.Fog(0x87ceeb, 50, 300);
+    this.scene.fog = new THREE.Fog(0x87ceeb, 60, 300);
   }
 
-  _initGround() {
-    const texLoader = new THREE.TextureLoader();
-    const grassTex = texLoader.load(grassTexUrl);
-    grassTex.wrapS = grassTex.wrapT = THREE.RepeatWrapping;
-    grassTex.repeat.set(40, 40);
-
+  _initGround(grassTex) {
     const ground = new THREE.Mesh(
       new THREE.PlaneGeometry(500, 500),
       new THREE.MeshLambertMaterial({ map: grassTex })
@@ -80,26 +78,64 @@ export class SceneManager {
     this.scene.add(ground);
   }
 
-  _loadModel() {
-    const texLoader = new THREE.TextureLoader();
-    const mainTex = texLoader.load(mainTexUrl);
+  _initTrack() {
+    // Gravel track bed (flat ring)
+    const bedMat = new THREE.MeshLambertMaterial({ map: this.mainTex, side: THREE.DoubleSide });
+    const bed = new THREE.Mesh(new THREE.RingGeometry(TRACK_RADIUS - 1.2, TRACK_RADIUS + 1.2, 80), bedMat);
+    bed.rotation.x = -Math.PI / 2;
+    bed.position.y = 0.01;
+    this.scene.add(bed);
 
+    // Two metal rails
+    const railMat = new THREE.MeshLambertMaterial({ map: this.mainTex });
+    for (const offset of [-0.4, 0.4]) {
+      const rail = new THREE.Mesh(
+        new THREE.TorusGeometry(TRACK_RADIUS + offset, 0.06, 6, 80),
+        railMat
+      );
+      rail.rotation.x = -Math.PI / 2;
+      rail.position.y = 0.09;
+      rail.castShadow = true;
+      this.scene.add(rail);
+    }
+
+    // Railway ties (wooden sleepers)
+    const tieMat = new THREE.MeshLambertMaterial({ color: 0x5c3d1e });
+    const tieGeom = new THREE.BoxGeometry(2.4, 0.1, 0.4);
+    const tieCount = 40;
+    for (let i = 0; i < tieCount; i++) {
+      const angle = (i / tieCount) * Math.PI * 2;
+      const tie = new THREE.Mesh(tieGeom, tieMat);
+      tie.position.set(
+        Math.cos(angle) * TRACK_RADIUS,
+        0.05,
+        Math.sin(angle) * TRACK_RADIUS
+      );
+      tie.rotation.y = angle + Math.PI / 2;
+      tie.castShadow = true;
+      tie.receiveShadow = true;
+      this.scene.add(tie);
+    }
+  }
+
+  _loadModel(onLoaded) {
     const loader = new FBXLoader();
     loader.load(modelUrl, (fbx) => {
-      fbx.scale.setScalar(0.01);
-      fbx.position.set(0, 0, -5);
-      fbx.castShadow = true;
+      const namedMeshes = {};
+      const charMeshes = [];
 
-      fbx.traverse((child) => {
-        if (child.isMesh) {
-          child.castShadow = true;
-          child.receiveShadow = true;
-          child.material = new THREE.MeshLambertMaterial({ map: mainTex });
+      fbx.traverse(child => {
+        const n = child.name;
+        if (!n) return;
+        if ((n === 'Locomotive_EU' || n === 'Carriage_EU') && !namedMeshes[n]) {
+          namedMeshes[n] = child;
+        }
+        if (n.startsWith('G_Character_') && !charMeshes.find(c => c.name === n)) {
+          charMeshes.push(child);
         }
       });
 
-      this.scene.add(fbx);
-      this.model = fbx;
+      if (onLoaded) onLoaded(namedMeshes, charMeshes);
     });
   }
 
