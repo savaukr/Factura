@@ -1,3 +1,5 @@
 import { Game } from './Game.js';
 
-new Game().start();
+const game = new Game();
+game.start();
+window.__game = game;

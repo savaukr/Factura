@@ -1,6 +1,20 @@
 import * as THREE from 'three';
 
+export const TRACK_RADIUS = 18;
+export const CAMERA_OFFSET = new THREE.Vector3(0, 14, -20);
+export const STATION_WORLD = new THREE.Vector3(TRACK_RADIUS, 0, 0);
+export const STATION_ANGLE = 0;
 
-export  const TRACK_RADIUS= 18;
-export const CAMERA_OFFSET= new THREE.Vector3(0, 14, -20);
-export  const STATION_WORLD = new THREE.Vector3(TRACK_RADIUS, 0, 0);
+export const TRAIN_SPEED = 1.8;        // rad/s
+export const WAGON_GAP = 0.22;         // radians between wagon centers
+export const MAX_WAGONS = 5;
+export const INITIAL_WAGONS = 2;
+
+export const PASSENGER_SPAWN_INTERVAL = 2.0;  // seconds
+export const MAX_PLATFORM_PASSENGERS = 10;
+export const BOARDING_ZONE_ARC = 0.5;  // radians around STATION_ANGLE
+
+export const SWAY_SPEED = 1.5;         // Hz
+export const SWAY_AMP = 2 * Math.PI / 180;  // 2 degrees
+
+export const WAGON_FACING_OFFSET = 0;  // adjust if FBX model faces wrong direction
