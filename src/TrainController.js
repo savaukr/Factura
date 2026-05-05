@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {
   TRACK_RADIUS, TRAIN_SPEED, WAGON_GAP, MAX_WAGONS, INITIAL_WAGONS,
-  SWAY_SPEED, SWAY_AMP, STATION_ANGLE, BOARDING_ZONE_ARC,
+  SWAY_SPEED, SWAY_AMP, STATION_ANGLE, BOARDING_ZONE_ARC, SLOW_ZONE_ARC,
 } from './constant.js';
 
 export class TrainController {
@@ -68,9 +68,20 @@ export class TrainController {
     return true;
   }
 
+  _stationSpeedMultiplier() {
+    const a = ((this.headAngle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+    const diff = Math.min(a, 2 * Math.PI - a);
+    const halfZone = SLOW_ZONE_ARC / 2;
+    if (diff >= halfZone) return 1;
+    const t = 1 - diff / halfZone;                  // 0 at edge → 1 at center
+    const smooth = t * t * (3 - 2 * t);             // smoothstep
+    return 1 - 0.5 * smooth;                        // 1.0 → 0.5
+  }
+
   update(delta, isMoving) {
     if (isMoving) {
-      this.headAngle += TRAIN_SPEED * delta;
+      const speed = TRAIN_SPEED * this._stationSpeedMultiplier();
+      this.headAngle += speed * delta;
       this.animTime += delta;
     }
 
