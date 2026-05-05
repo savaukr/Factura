@@ -14,10 +14,51 @@ export class PassengerSystem {
     this._charMeshes = charMeshes;
     this._mainTex = mainTex;
     this.passengers = [];       // { mesh, boarding, target }
+    this._pool = [];            // inactive passenger objects
     this.trainPassengerCount = 0;
     this.totalSpawned = 0;
     this.spawnTimer = 0;
     this._initPlatform();
+    this._initPool();
+  }
+
+  _initPool() {
+    for (let i = 0; i < MAX_PLATFORM_PASSENGERS; i++) {
+      const mesh = this._createPassengerMesh();
+      mesh.visible = false;
+      this._scene.add(mesh);
+      this._pool.push({ mesh, boarding: false, target: null });
+    }
+  }
+
+  _createPassengerMesh() {
+    let src = null;
+    if (this._charMeshes.length > 0) {
+      src = this._charMeshes[Math.floor(Math.random() * this._charMeshes.length)];
+    }
+
+    let mesh;
+    if (src) {
+      mesh = src.clone(true);
+      mesh.position.set(0, 0, 0);
+      mesh.scale.setScalar(0.5);
+      mesh.traverse(child => {
+        if (!child.isMesh) return;
+        child.material = new THREE.MeshLambertMaterial({ map: this._mainTex });
+        child.castShadow = true;
+      });
+    } else {
+      const color = new THREE.Color().setHSL(Math.random(), 0.6, 0.5);
+      const body = new THREE.Mesh(
+        new THREE.CapsuleGeometry(0.2, 0.6, 4, 8),
+        new THREE.MeshLambertMaterial({ color })
+      );
+      body.castShadow = true;
+      body.position.y = 0.7;
+      mesh = new THREE.Group();
+      mesh.add(body);
+    }
+    return mesh;
   }
 
   _initPlatform() {
@@ -50,39 +91,16 @@ export class PassengerSystem {
   }
 
   _spawnPassenger() {
-    let src = null;
-    if (this._charMeshes.length > 0) {
-      src = this._charMeshes[Math.floor(Math.random() * this._charMeshes.length)];
-    }
+    if (this._pool.length === 0) return;
 
-    let mesh;
-    if (src) {
-      mesh = src.clone(true);
-      mesh.position.set(0, 0, 0);
-      mesh.scale.setScalar(0.5);
-      mesh.traverse(child => {
-        if (!child.isMesh) return;
-        child.material = new THREE.MeshLambertMaterial({ map: this._mainTex });
-        child.castShadow = true;
-      });
-    } else {
-      // Fallback capsule passenger
-      const color = new THREE.Color().setHSL(Math.random(), 0.6, 0.5);
-      const body = new THREE.Mesh(
-        new THREE.CapsuleGeometry(0.2, 0.6, 4, 8),
-        new THREE.MeshLambertMaterial({ color })
-      );
-      body.castShadow = true;
-      body.position.y = 0.7;
-      mesh = new THREE.Group();
-      mesh.add(body);
-    }
-
+    const p = this._pool.pop();
     const x = PLATFORM_CENTER_X - PLATFORM_HALF_X + Math.random() * PLATFORM_HALF_X * 2;
     const z = (Math.random() - 0.5) * PLATFORM_HALF_Z * 2;
-    mesh.position.set(x, PLATFORM_TOP_Y, z);
-    this._scene.add(mesh);
-    this.passengers.push({ mesh, boarding: false, target: null });
+    p.mesh.position.set(x, PLATFORM_TOP_Y, z);
+    p.boarding = false;
+    p.target = null;
+    p.mesh.visible = true;
+    this.passengers.push(p);
   }
 
   update(delta, isMoving, trainHeadPos, isAtStation, trainCapacity) {
@@ -128,7 +146,10 @@ export class PassengerSystem {
       }
     }
     for (const p of toRemove) {
-      this._scene.remove(p.mesh);
+      p.mesh.visible = false;
+      p.boarding = false;
+      p.target = null;
+      this._pool.push(p);
       this.passengers.splice(this.passengers.indexOf(p), 1);
     }
   }
