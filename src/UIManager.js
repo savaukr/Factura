@@ -3,14 +3,16 @@ import { PASSENGERS_PER_WAGON } from './constant.js';
 export class UIManager {
   constructor() {
     this._passEl = document.getElementById('hud-passengers');
+    this._totalEl = document.getElementById('hud-total');
     this._wagonBtn = document.getElementById('btn-add-wagon');
     this._fpsEl = document.getElementById('hud-fps');
     this._addWagonCb = null;
     this._wagonBtn.addEventListener('click', () => this._addWagonCb?.());
   }
 
-  setPassengerCount(n) {
-    this._passEl.textContent = `Passengers: ${n}`;
+  setPassengerCount(inTrain, total) {
+    this._passEl.textContent = `In train: ${inTrain}`;
+    this._totalEl.textContent = `Total: ${total}`;
   }
 
   setWagonCount(n, max, trainPassengers) {

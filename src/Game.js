@@ -62,7 +62,8 @@ export class Game {
     const trainCapacity = this.trainController.wagonCount * PASSENGERS_PER_WAGON;
     this.passengerSystem.update(delta, isMoving, headPos, atStation, trainCapacity);
     const trainPassengers = this.passengerSystem.trainPassengerCount;
-    this.uiManager.setPassengerCount(trainPassengers);
+    const totalPassengers = trainPassengers + this.passengerSystem.passengers.length;
+    this.uiManager.setPassengerCount(trainPassengers, totalPassengers);
     this.uiManager.setWagonCount(this.trainController.wagonCount, MAX_WAGONS, trainPassengers);
 
     // Third-person follow camera: translate with train, fixed world-space offset
