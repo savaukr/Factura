@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { TRACK_RADIUS, PASSENGER_SPAWN_INTERVAL, MAX_PLATFORM_PASSENGERS, MAX_TRAIN_PASSENGERS } from './constant.js';
+import { TRACK_RADIUS, PASSENGER_SPAWN_INTERVAL, MAX_PLATFORM_PASSENGERS } from './constant.js';
 
 const PLATFORM_CENTER_X = TRACK_RADIUS + 3.2;
 const PLATFORM_HALF_X = 2;
@@ -84,20 +84,16 @@ export class PassengerSystem {
     this.passengers.push({ mesh, boarding: false, target: null });
   }
 
-  update(delta, isMoving, trainHeadPos, isAtStation) {
+  update(delta, isMoving, trainHeadPos, isAtStation, trainCapacity) {
     // Spawn
     this.spawnTimer += delta;
-    if (
-      this.spawnTimer >= PASSENGER_SPAWN_INTERVAL &&
-      this.passengers.length < MAX_PLATFORM_PASSENGERS &&
-      this.trainPassengerCount < MAX_TRAIN_PASSENGERS
-    ) {
+    if (this.spawnTimer >= PASSENGER_SPAWN_INTERVAL && this.passengers.length < MAX_PLATFORM_PASSENGERS) {
       this.spawnTimer = 0;
       this._spawnPassenger();
     }
 
-    // Trigger boarding when train stops at station
-    if (!isMoving && isAtStation) {
+    // Trigger boarding only if train has capacity
+    if (!isMoving && isAtStation && this.trainPassengerCount < trainCapacity) {
       const doorPos = new THREE.Vector3(
         trainHeadPos.x + (PLATFORM_CENTER_X - TRACK_RADIUS) * 0.3,
         PLATFORM_TOP_Y,
@@ -115,6 +111,10 @@ export class PassengerSystem {
     const toRemove = [];
     for (const p of this.passengers) {
       if (!p.boarding) continue;
+      if (this.trainPassengerCount >= trainCapacity) {
+        p.boarding = false;
+        continue;
+      }
       const dir = new THREE.Vector3().subVectors(p.target, p.mesh.position);
       if (dir.length() < BOARD_THRESHOLD) {
         toRemove.push(p);

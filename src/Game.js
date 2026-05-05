@@ -59,7 +59,8 @@ export class Game {
     const headPos = this.trainController.getHeadPosition();
     const atStation = this.trainController.isAtStation();
 
-    this.passengerSystem.update(delta, isMoving, headPos, atStation);
+    const trainCapacity = this.trainController.wagonCount * PASSENGERS_PER_WAGON;
+    this.passengerSystem.update(delta, isMoving, headPos, atStation, trainCapacity);
     const trainPassengers = this.passengerSystem.trainPassengerCount;
     this.uiManager.setPassengerCount(trainPassengers);
     this.uiManager.setWagonCount(this.trainController.wagonCount, MAX_WAGONS, trainPassengers);
