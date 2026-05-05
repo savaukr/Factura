@@ -13,7 +13,7 @@ export const INITIAL_WAGONS = 2;
 export const PASSENGER_SPAWN_INTERVAL = 2.0;  // seconds
 export const MAX_PLATFORM_PASSENGERS = 10;
 export const PASSENGERS_PER_WAGON = 15;
-export const MAX_TRAIN_PASSENGERS = 75;
+export const MAX_TRAIN_PASSENGERS = MAX_WAGONS * PASSENGERS_PER_WAGON + MAX_PLATFORM_PASSENGERS;
 export const BOARDING_ZONE_ARC = 0.6;  // radians around STATION_ANGLE
 export const SLOW_ZONE_ARC = 1.4;      // radians — train slows to 50% within this zone
 
