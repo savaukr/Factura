@@ -1,3 +1,5 @@
+import { PASSENGERS_PER_WAGON } from './constant.js';
+
 export class UIManager {
   constructor() {
     this._passEl = document.getElementById('hud-passengers');
@@ -11,9 +13,17 @@ export class UIManager {
     this._passEl.textContent = `Passengers: ${n}`;
   }
 
-  setWagonCount(n, max) {
-    this._wagonBtn.textContent = `+ Add Wagon (${n}/${max})`;
-    this._wagonBtn.disabled = n >= max;
+  setWagonCount(n, max, trainPassengers) {
+    const needed = n * PASSENGERS_PER_WAGON;
+    const canAfford = trainPassengers >= needed;
+    this._wagonBtn.disabled = n >= max || !canAfford;
+    if (n >= max) {
+      this._wagonBtn.textContent = `+ Add Wagon (${n}/${max})`;
+    } else if (!canAfford) {
+      this._wagonBtn.textContent = `+ Add Wagon (${trainPassengers}/${needed} passengers)`;
+    } else {
+      this._wagonBtn.textContent = `+ Add Wagon (${n}/${max})`;
+    }
   }
 
   onAddWagon(cb) {

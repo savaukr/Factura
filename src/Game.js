@@ -4,7 +4,7 @@ import { InputManager } from './InputManager.js';
 import { TrainController } from './TrainController.js';
 import { PassengerSystem } from './PassengerSystem.js';
 import { UIManager } from './UIManager.js';
-import { CAMERA_OFFSET, MAX_WAGONS } from './constant.js';
+import { CAMERA_OFFSET, MAX_WAGONS, PASSENGERS_PER_WAGON } from './constant.js';
 
 export class Game {
   constructor() {
@@ -29,10 +29,18 @@ export class Game {
       this.passengerSystem = new PassengerSystem(
         this.sceneManager.scene, charMeshes, this.sceneManager.mainTex
       );
-      this.uiManager.setWagonCount(this.trainController.wagonCount, MAX_WAGONS);
+      const updateWagonBtn = () => {
+        const n = this.trainController.wagonCount;
+        const passengers = this.passengerSystem.trainPassengerCount;
+        this.uiManager.setWagonCount(n, MAX_WAGONS, passengers);
+      };
+      updateWagonBtn();
       this.uiManager.onAddWagon(() => {
+        const n = this.trainController.wagonCount;
+        const passengers = this.passengerSystem.trainPassengerCount;
+        if (passengers < n * PASSENGERS_PER_WAGON) return;
         if (this.trainController.addWagon()) {
-          this.uiManager.setWagonCount(this.trainController.wagonCount, MAX_WAGONS);
+          updateWagonBtn();
         }
       });
     });
@@ -52,7 +60,9 @@ export class Game {
     const atStation = this.trainController.isAtStation();
 
     this.passengerSystem.update(delta, isMoving, headPos, atStation);
-    this.uiManager.setPassengerCount(this.passengerSystem.trainPassengerCount);
+    const trainPassengers = this.passengerSystem.trainPassengerCount;
+    this.uiManager.setPassengerCount(trainPassengers);
+    this.uiManager.setWagonCount(this.trainController.wagonCount, MAX_WAGONS, trainPassengers);
 
     // Third-person follow camera: translate with train, fixed world-space offset
     this.sceneManager.camera.position.copy(headPos).add(CAMERA_OFFSET);

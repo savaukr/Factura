@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { TRACK_RADIUS, PASSENGER_SPAWN_INTERVAL, MAX_PLATFORM_PASSENGERS } from './constant.js';
+import { TRACK_RADIUS, PASSENGER_SPAWN_INTERVAL, MAX_PLATFORM_PASSENGERS, MAX_TRAIN_PASSENGERS } from './constant.js';
 
 const PLATFORM_CENTER_X = TRACK_RADIUS + 3.2;
 const PLATFORM_HALF_X = 2;
@@ -87,7 +87,11 @@ export class PassengerSystem {
   update(delta, isMoving, trainHeadPos, isAtStation) {
     // Spawn
     this.spawnTimer += delta;
-    if (this.spawnTimer >= PASSENGER_SPAWN_INTERVAL && this.passengers.length < MAX_PLATFORM_PASSENGERS) {
+    if (
+      this.spawnTimer >= PASSENGER_SPAWN_INTERVAL &&
+      this.passengers.length < MAX_PLATFORM_PASSENGERS &&
+      this.trainPassengerCount < MAX_TRAIN_PASSENGERS
+    ) {
       this.spawnTimer = 0;
       this._spawnPassenger();
     }
